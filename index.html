@@ -421,7 +421,6 @@
                 🚪 Logout System
               </button>
             </div>
-            <button class="btn btn-s" onclick="exportData()">Backup</button>
           </div>
         </div>
       </div>
@@ -495,30 +494,6 @@
           document.getElementById("app-content").style.display = "block";
         }
       };
-
-      function sendPaymentSMS(studentId, amount, type) {
-        const s = db.students.find((std) => std.id === studentId);
-        if (!s) return;
-
-        const date = new Date().toLocaleDateString();
-        const msg =
-          `*SIPSAYURA ELITE - Payment Receipt*%0A%0A` +
-          `Student: ${s.name}%0A` +
-          `Amount: LKR ${amount}.00%0A` +
-          `Type: ${type}%0A` +
-          `Date: ${date}%0A%0A` +
-          `Thank you for your payment!`;
-
-        // Clean the phone number (remove spaces/dashes)
-        let phone = s.p.replace(/\D/g, "");
-
-        // Ensure it starts with 94
-        if (phone.startsWith("0")) phone = "94" + phone.substring(1);
-        if (!phone.startsWith("94")) phone = "94" + phone;
-
-        const url = `https://wa.me/${phone}?text=${msg}`;
-        window.open(url, "_blank");
-      }
 
       function initApp() {
         rdb.ref("sip_v36").on("value", (s) => {
@@ -703,32 +678,39 @@
           `Thank you for your payment.`;
         openWhatsApp(s.ph, msg);
       }
+      function sendWhatsAppAlert(studentId, type, amount = 0) {
+        const s = db.students.find((std) => std.id === studentId);
+        if (!s) return;
 
-      function openWhatsApp(ph, msg) {
-        let phone = ph.replace(/\D/g, "");
-        if (phone.length === 9) phone = "94" + phone;
-        if (phone.startsWith("0")) phone = "94" + phone.substring(1);
-        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-      }
-      function sendWA(id, status) {
-        const s = db.students.find((x) => x.id === id);
         const date = document.getElementById("att-date").value;
-        const msg =
-          `*Sipsayura Elite Notice*%0A%0A` +
-          `Student: *${s.name.toUpperCase()}*%0A` +
-          `Date: ${date}%0A` +
-          `Subject: ${cs}%0A` +
-          `Status: *${status}*%0A%0A` +
-          `Thank you.`;
+        let msg = "";
 
-        // Clean phone number (remove spaces/dashes)
+        if (type === "Attendance") {
+          msg =
+            `*SIPSAYURA ELITE - ATTENDANCE NOTICE*%0A%0A` +
+            `Student: *${s.name.toUpperCase()}*%0A` +
+            `Date: ${date}%0A` +
+            `Subject: ${cs}%0A` +
+            `Status: *PRESENT* ✅`;
+        } else {
+          msg =
+            `*SIPSAYURA ELITE - PAYMENT RECEIPT*%0A%0A` +
+            `Student: *${s.name.toUpperCase()}*%0A` +
+            `Date: ${date}%0A` +
+            `Type: *${type}*%0A` +
+            `Amount: *LKR ${amount}.00*%0A%0A` +
+            `Status: *PAID* ✅%0A%0A` +
+            `Thank you for your payment!`;
+        }
+
+        // Format phone for Sri Lanka (94xxxxxxxxx)
         let phone = s.ph.replace(/\D/g, "");
-        // Add country code if not present (assuming Sri Lanka +94)
         if (phone.length === 9) phone = "94" + phone;
         if (phone.startsWith("0")) phone = "94" + phone.substring(1);
 
         window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
       }
+
       function getLastClassDate(currentDate) {
         const dates = Object.keys(db.att)
           .filter((k) => k.startsWith(`${cs}_${cg}_`))
@@ -1122,15 +1104,19 @@
         const date = document.getElementById("att-date").value;
         const k = `${cs}_${cg}_${date}`;
         if (!db.att[k]) db.att[k] = { p: [], daily: {} };
-        if (!db.att[k].daily) db.att[k].daily = {};
 
-        if (amt === 0) delete db.att[k].daily[id];
-        else {
+        if (amt === 0) {
+          delete db.att[k].daily[id];
+        } else {
           db.att[k].daily[id] = amt;
           if (!db.att[k].p.includes(id)) db.att[k].p.push(id);
         }
         save();
         openProfile(id);
+
+        if (amt > 0 && confirm("Send WhatsApp receipt for Daily Fee?")) {
+          sendWhatsAppAlert(id, "Daily Class Fee", amt);
+        }
       }
 
       function payM(id, st) {
@@ -1139,6 +1125,11 @@
         db.fees[m][id] = { paid: st };
         save();
         openProfile(id);
+
+        if (st && confirm("Send WhatsApp receipt for Monthly Fee?")) {
+          const fee = db.grades[cg]?.mFee || 1000;
+          sendWhatsAppAlert(id, "Monthly Tuition Fee", fee);
+        }
       }
       function openSummary() {
         const date = document.getElementById("att-date").value;
