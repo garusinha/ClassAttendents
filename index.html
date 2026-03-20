@@ -477,9 +477,81 @@
             const count = (db.students || []).filter(
               (s) => s.g && s.g.toString() === g.toString(),
             ).length;
-            d.innerHTML += `<div class="grade-card" onclick="selG('${g}')"><span class="count-badge">${count} Std</span><h3>Grade ${g}</h3></div>`;
+
+            d.innerHTML += `
+        <div class="grade-card" style="position:relative;">
+          <div onclick="selG('${g}')">
+            <span class="count-badge">${count} Std</span>
+            <h3>Grade ${g}</h3>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:5px; justify-content:center;">
+            <button onclick="editGrade('${g}')" style="font-size:10px; padding:4px 8px; border-radius:5px; border:1px solid #e2e8f0; background:white;">Edit</button>
+            <button onclick="deleteGrade('${g}')" style="font-size:10px; padding:4px 8px; border-radius:5px; border:none; background:#fee2e2; color:#991b1b;">Delete</button>
+          </div>
+        </div>`;
           });
         }
+      }
+      function editGrade(oldG) {
+        const pin = prompt("Enter Admin PIN to edit grade:");
+        if (pin !== "2705") return alert("Incorrect PIN");
+
+        const newG = prompt("Enter new Grade Number:", oldG);
+        if (!newG || newG === oldG) return;
+
+        if (db.grades[newG]) return alert("Grade " + newG + " already exists!");
+
+        // 1. Move the grade data
+        db.grades[newG] = db.grades[oldG];
+        delete db.grades[oldG];
+
+        // 2. Update all students belonging to this grade
+        db.students.forEach((s) => {
+          if (s.g && s.g.toString() === oldG.toString()) {
+            s.g = newG.toString();
+          }
+        });
+
+        // 3. Update schedules if they exist
+        if (db.schedules) {
+          db.subs.forEach((sub) => {
+            const oldKey = `${oldG}_${sub}`;
+            const newKey = `${newG}_${sub}`;
+            if (db.schedules[oldKey]) {
+              db.schedules[newKey] = db.schedules[oldKey];
+              delete db.schedules[oldKey];
+            }
+          });
+        }
+
+        save();
+        refreshUI();
+        alert("Grade updated and students migrated successfully.");
+      }
+
+      function deleteGrade(g) {
+        const pin = prompt(
+          `Type 'DELETE' and enter Admin PIN to remove Grade ${g}:`,
+        );
+        if (pin !== "DELETE 2705")
+          return alert("Action cancelled or wrong PIN.");
+
+        const hasStudents = (db.students || []).some(
+          (s) => s.g.toString() === g.toString(),
+        );
+        if (hasStudents) {
+          if (
+            !confirm(
+              `Grade ${g} has students enrolled. Deleting the grade will leave them without a class. Continue?`,
+            )
+          )
+            return;
+        }
+
+        delete db.grades[g];
+        save();
+        refreshUI();
+        alert("Grade " + g + " deleted.");
       }
 
       function selG(g) {
