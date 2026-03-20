@@ -216,8 +216,23 @@
     </div>
 
     <div id="app-content" style="display: none">
-      <header>
+      <header style="position: relative">
         <h1>SIPSAYURA <span style="color: #818cf8">ELITE</span></h1>
+        <button
+          onclick="logout()"
+          style="
+            position: absolute;
+            right: 15px;
+            top: 25px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+          "
+        >
+          ⏻
+        </button>
       </header>
       <nav id="app-nav">
         <button class="nav-btn active" onclick="setTab('att', this)">
@@ -345,6 +360,23 @@
           </div>
 
           <div id="tab-set" style="display: none">
+            <div class="card">
+              <h3>System Controls</h3>
+              <button
+                class="btn btn-s"
+                onclick="exportData()"
+                style="margin-bottom: 10px"
+              >
+                Backup Data
+              </button>
+              <button
+                class="btn btn-dk"
+                onclick="logout()"
+                style="background: var(--d)"
+              >
+                🚪 Logout System
+              </button>
+            </div>
             <button class="btn btn-s" onclick="exportData()">Backup</button>
           </div>
         </div>
@@ -494,6 +526,14 @@
         if (el) el.classList.add("active");
         if (t === "sch") loadSchedule();
         render();
+      }
+      function logout() {
+        if (confirm("Are you sure you want to logout?")) {
+          // Clear the session storage
+          sessionStorage.removeItem("auth_sip");
+          // Reload the page to bring back the login screen
+          location.reload();
+        }
       }
 
       function markAtt(id, val) {
