@@ -11,8 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <link rel="icon" type="image/png" href="YOUR_IMAGE_URL" />
-    <link rel="apple-touch-icon" href="YOUR_IMAGE_URL" />
+    <link rel="icon" type="image/png" href="Screenshot 2026-03-20 135337.png" />
+    <link rel="apple-touch-icon" href="Screenshot 2026-03-20 135337.png" />
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
@@ -408,12 +408,14 @@
         }
       }
 
-      // Check login status on load
+      // Check login status and initialize DB on load
       window.onload = function () {
+        // Initialize DB connection immediately so PIN and data are ready
+        initApp();
+
         if (sessionStorage.getItem("auth_sip") === "true") {
           document.getElementById("login-screen").style.display = "none";
           document.getElementById("app-content").style.display = "block";
-          initApp();
         }
       };
 
@@ -1059,11 +1061,26 @@
       }
 
       function addNewGrade() {
-        const n = prompt("Enter Grade Number:");
+        const n = prompt("Enter Grade Number (e.g., 10, 11, 12):");
         if (n) {
           if (!db.grades) db.grades = {};
+
+          // Check if grade already exists to prevent overwriting
+          if (db.grades[n]) {
+            alert("Grade " + n + " already exists!");
+            return;
+          }
+
+          // Set a default Monthly Fee
           db.grades[n] = { mFee: 1000 };
+
+          // 1. Save to Firebase immediately
           save();
+
+          // 2. Force the UI to show the new card
+          refreshUI();
+
+          alert("Grade " + n + " added successfully.");
         }
       }
 
