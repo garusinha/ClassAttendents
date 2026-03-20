@@ -496,6 +496,30 @@
         }
       };
 
+      function sendPaymentSMS(studentId, amount, type) {
+        const s = db.students.find((std) => std.id === studentId);
+        if (!s) return;
+
+        const date = new Date().toLocaleDateString();
+        const msg =
+          `*SIPSAYURA ELITE - Payment Receipt*%0A%0A` +
+          `Student: ${s.name}%0A` +
+          `Amount: LKR ${amount}.00%0A` +
+          `Type: ${type}%0A` +
+          `Date: ${date}%0A%0A` +
+          `Thank you for your payment!`;
+
+        // Clean the phone number (remove spaces/dashes)
+        let phone = s.p.replace(/\D/g, "");
+
+        // Ensure it starts with 94
+        if (phone.startsWith("0")) phone = "94" + phone.substring(1);
+        if (!phone.startsWith("94")) phone = "94" + phone;
+
+        const url = `https://wa.me/${phone}?text=${msg}`;
+        window.open(url, "_blank");
+      }
+
       function initApp() {
         rdb.ref("sip_v36").on("value", (s) => {
           const data = s.val();
